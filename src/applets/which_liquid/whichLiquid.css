@@ -1,0 +1,8 @@
+/* Which liquid?: notes under the world buttons. */
+
+.which-liquid .wl-note {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: rgba(240, 238, 234, 0.7);
+}
