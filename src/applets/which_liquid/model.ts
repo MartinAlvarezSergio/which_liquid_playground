@@ -1,5 +1,5 @@
 /**
- * Which liquid?: simple phase diagrams for five substances, and the surface conditions of some
+ * Which liquid?: simple phase diagrams for six substances, and the surface conditions of some
  * worlds. Each diagram uses the measured triple and critical points (and the normal boiling point,
  * where there is one), joined by Clausius–Clapeyron curves, with a vertical melting line.
  * Units: kelvin and pascals.
@@ -55,6 +55,16 @@ export const SUBSTANCES: Substance[] = [
     sublimation: { heat: 17_600 }
   },
   {
+    id: "ammonia",
+    name: "Ammonia",
+    formula: "NH₃",
+    colour: "#ff7aa8",
+    triple: { T: 195.4, P: 6_060 },
+    critical: { T: 405.4, P: 11.333e6 },
+    boils: 239.82,
+    sublimation: { heat: 31_200 }
+  },
+  {
     id: "co2",
     name: "Carbon dioxide",
     formula: "CO₂",
@@ -72,7 +82,8 @@ export const SUBSTANCES: Substance[] = [
     triple: { T: 63.15, P: 12_520 },
     critical: { T: 126.19, P: 3.396e6 },
     boils: 77.36,
-    sublimation: { heat: 6_290 }
+    // Frost in balance with 16 µbar of air at 38 K, as Voyager 2 found on Triton.
+    sublimation: { T: 38, P: 1.6 }
   }
 ];
 
@@ -113,7 +124,15 @@ export function phaseOf(s: Substance, T: number, P: number): Phase {
 
 // ─── Worlds ──────────────────────────────────────────────────────────────────
 
-export type World = { id: string; name: string; T: number; P: number; note: string };
+export type World = {
+  id: string;
+  name: string;
+  T: number;
+  P: number;
+  note: string;
+  /** Put the name under the dot, to keep clear of a close neighbour. */
+  labelBelow?: boolean;
+};
 
 export const WORLDS: World[] = [
   { id: "earth", name: "Earth", T: 288, P: ATM, note: "Average surface: 15 °C at 1 bar." },
@@ -121,6 +140,8 @@ export const WORLDS: World[] = [
   { id: "mars", name: "Mars", T: 210, P: 600, note: "Average surface: −63 °C at 0.006 bar." },
   { id: "titan", name: "Titan", T: 94, P: 1.47e5, note: "Saturn's largest moon: −179 °C under 1.5 bar of nitrogen." },
   { id: "europa", name: "Europa", T: 100, P: 1e-7, note: "Jupiter's icy moon: about −170 °C and almost no air. Its ocean lies under the ice." },
+  { id: "triton", name: "Triton", T: 37.5, P: 1.4, note: "Neptune's largest moon: −236 °C, with thin nitrogen air (14 µbar) over nitrogen frost." },
+  { id: "pluto", name: "Pluto", T: 37.2, P: 1.0, labelBelow: true, note: "Its thin nitrogen air (10 µbar in 2015) is vapour from nitrogen frost on the ground." },
   {
     id: "rogue",
     name: "Rogue planet",
@@ -130,4 +151,34 @@ export const WORLDS: World[] = [
   }
 ];
 
-export const AXES = { Tmin: 30, Tmax: 1000, Pmin: 1e-8, Pmax: 1e9 };
+export const AXES = { Tmin: 25, Tmax: 1000, Pmin: 1e-8, Pmax: 1e9 };
+
+// ─── Pluto's year ────────────────────────────────────────────────────────────
+
+const PLUTO = { a: 39.48, e: 0.2488, period: 247.9, perihelion: 1989.7 };
+/** Nitrogen ice temperature (K) when New Horizons flew past in 2015, 32.9 AU from the Sun. */
+const PLUTO_ICE_2015 = { T: 37.2, r: 32.9 };
+
+/** Pluto's distance from the Sun (AU) in a given year. */
+export function plutoDistance(year: number): number {
+  const m = (2 * Math.PI * (year - PLUTO.perihelion)) / PLUTO.period;
+  let E = m;
+  for (let k = 0; k < 30; k += 1) {
+    E -= (E - PLUTO.e * Math.sin(E) - m) / (1 - PLUTO.e * Math.cos(E));
+  }
+  return PLUTO.a * (1 - PLUTO.e * Math.cos(E));
+}
+
+/**
+ * Pluto's surface in a given year: its nitrogen ice warms and cools with sunlight (as distance to
+ * the −1/2), and its air is the vapour in balance with that ice, so the pressure follows the frost line.
+ */
+export function plutoAt(year: number): { r: number; T: number; P: number } {
+  const r = plutoDistance(year);
+  const T = PLUTO_ICE_2015.T * (r / PLUTO_ICE_2015.r) ** -0.5;
+  const nitrogen = SUBSTANCES.find((s) => s.id === "nitrogen")!;
+  // A hair above the frost line, so the ground keeps its frost.
+  return { r, T, P: sublimationPressure(nitrogen, T) * 1.0001 };
+}
+
+export const PLUTO_YEARS = { from: 1990, to: 2237 };

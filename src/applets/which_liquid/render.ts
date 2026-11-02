@@ -2,7 +2,7 @@ import { ATM, AXES, boilingPressure, phaseOf, SUBSTANCES, sublimationPressure, t
 
 export const VIEW_W = 1280;
 export const VIEW_H = 720;
-export const PLOT = { left: 430, right: 950, top: 60, bottom: 630 };
+export const PLOT = { left: 430, right: 895, top: 60, bottom: 630 };
 
 const INK = "rgba(235, 232, 226, 0.92)";
 const MUTED = "rgba(235, 232, 226, 0.6)";
@@ -158,7 +158,7 @@ function labelSpot(s: Substance, phase: Phase): { x: number; y: number } {
     case "solid":
       return { x: clampX(xOf(s.triple.T / 1.5)), y: clampY(yOf(s.critical.P)) };
     case "liquid":
-      return { x: clampX(xOf(mid)), y: clampY(yOf(Math.min(AXES.Pmax / 3, boilingPressure(s, mid) * 300))) };
+      return { x: clampX(xOf(mid)), y: clampY(yOf(Math.min(AXES.Pmax / 3, boilingPressure(s, mid) * 30))) };
     case "gas":
       return { x: clampX(xOf(mid * 1.4)), y: clampY(yOf(boilingPressure(s, mid * 1.4) / 1e4)) };
     case "supercritical":
@@ -171,6 +171,8 @@ export type ChartView = {
   outlineAll: boolean;
   worlds: World[];
   selected: string;
+  /** A track to draw through the chart (Pluto's year), if any. */
+  path?: { T: number; P: number }[];
 };
 
 export function renderChart(ctx: CanvasRenderingContext2D, v: ChartView): void {
@@ -227,10 +229,25 @@ export function renderChart(ctx: CanvasRenderingContext2D, v: ChartView): void {
   }
   lines(ctx, v.substance, "rgba(255, 255, 255, 0.85)", 2, true);
   for (const phase of ["solid", "liquid", "gas", "supercritical"] as const) {
+    // Too narrow a supercritical strip for its name: label it from just above the chart.
+    if (phase === "supercritical" && right - xOf(v.substance.critical.T) < 130) {
+      text(ctx, "SUPERCRITICAL ↓", right, top - 10, PHASE_COLOUR.supercritical, 12, "right");
+      continue;
+    }
     const at = labelSpot(v.substance, phase);
     text(ctx, PHASE_LABEL[phase].toUpperCase(), at.x, at.y, PHASE_COLOUR[phase], 14);
   }
   text(ctx, `${v.substance.name} (${v.substance.formula})`, left, top - 22, INK, 16, "left");
+
+  if (v.path && v.path.length > 1) {
+    ctx.strokeStyle = "rgba(255, 211, 107, 0.55)";
+    ctx.lineWidth = 3;
+    ctx.setLineDash([2, 5]);
+    ctx.beginPath();
+    v.path.forEach((p, i) => (i === 0 ? ctx.moveTo(xOf(p.T), yOf(p.P)) : ctx.lineTo(xOf(p.T), yOf(p.P))));
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
 
   // Worlds.
   for (const w of v.worlds) {
@@ -248,6 +265,6 @@ export function renderChart(ctx: CanvasRenderingContext2D, v: ChartView): void {
       ctx.arc(x, y, 12, 0, Math.PI * 2);
       ctx.stroke();
     }
-    text(ctx, w.name, x + 10, y - 12, on ? "#ffd36b" : INK, on ? 14 : 12, "left");
+    text(ctx, w.name, x + 10, w.labelBelow ? y + 14 : y - 12, on ? "#ffd36b" : INK, on ? 14 : 12, "left");
   }
 }
