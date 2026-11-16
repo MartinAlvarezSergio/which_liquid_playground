@@ -56,6 +56,7 @@ export class Pond {
   private clock = 0;
 
   step(dt: number, look: PondLook): void {
+    dt = Math.max(0, dt);
     this.clock += dt;
     const ease = (from: number, to: number, rate: number): number => from + (to - from) * Math.min(1, dt * rate);
     this.liquid = ease(this.liquid, look.liquid, 1.4);
@@ -111,13 +112,13 @@ export class Pond {
       ctx.globalAlpha = 0.8;
       ctx.fillStyle = s.colour;
       ctx.beginPath();
-      ctx.ellipse(cx, cy, 100 * Math.sqrt(this.liquid), 20 * Math.sqrt(this.liquid), 0, 0, Math.PI * 2);
+      ctx.ellipse(cx, cy, 100 * Math.sqrt(Math.max(0, this.liquid)), 20 * Math.sqrt(Math.max(0, this.liquid)), 0, 0, Math.PI * 2);
       ctx.fill();
       ctx.globalAlpha = 0.5 * this.liquid;
       ctx.strokeStyle = "#ffffff";
       ctx.lineWidth = 1;
       for (let k = 0; k < 3; k += 1) {
-        const w = ((this.clock * 0.35 + k / 3) % 1) * 90 * Math.sqrt(this.liquid);
+        const w = (((this.clock * 0.35 + k / 3) % 1) + 1) % 1 * 90 * Math.sqrt(Math.max(0, this.liquid));
         ctx.beginPath();
         ctx.ellipse(cx, cy, w, w * 0.2, 0, 0, Math.PI * 2);
         ctx.stroke();

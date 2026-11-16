@@ -123,7 +123,8 @@ export function WhichLiquidCanvas({ host }: Props): JSX.Element {
     let last = performance.now();
     let yearCarry = 0;
     const tick = (now: number): void => {
-      const elapsed = (now - last) / 1000;
+      // The first frame can be stamped slightly before `last`; never step backwards.
+      const elapsed = Math.max(0, (now - last) / 1000);
       const dt = Math.min(0.1, elapsed);
       last = now;
       const s = live.current;
