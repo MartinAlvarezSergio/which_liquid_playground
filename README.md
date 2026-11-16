@@ -13,6 +13,9 @@ world's surface.
   substance ripple, boil, ice over, turn to vapour or go supercritical.
 - **Pluto's year**: play its 248-year orbit and watch its nitrogen air freeze onto the ground as it
   moves away from the Sun.
+- **Where liquids pool**: a map of distance from a Sun-like star against planet size, shaded by
+  which liquid would pool there for the air you set. Click it to build a world, then see it on the
+  phase diagram.
 
 ```bash
 npm install
